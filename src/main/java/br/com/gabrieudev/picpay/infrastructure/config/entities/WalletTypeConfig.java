@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import br.com.gabrieudev.picpay.application.gateways.WalletTypeGateway;
 import br.com.gabrieudev.picpay.application.usecases.WalletTypeInteractor;
 import br.com.gabrieudev.picpay.infrastructure.gateways.WalletTypeServiceGateway;
-import br.com.gabrieudev.picpay.infrastructure.persistence.redis.WalletTypeRedisRepository;
 import br.com.gabrieudev.picpay.infrastructure.persistence.repositories.WalletTypeRepository;
 
 @Configuration
@@ -17,7 +16,7 @@ public class WalletTypeConfig {
     }
 
     @Bean
-    WalletTypeGateway walletTypeGateway(WalletTypeRepository walletTypeRepository, WalletTypeRedisRepository walletTypeRedisRepository) {
-        return new WalletTypeServiceGateway(walletTypeRepository, walletTypeRedisRepository);
+    WalletTypeGateway walletTypeGateway(WalletTypeRepository walletTypeRepository) {
+        return new WalletTypeServiceGateway(walletTypeRepository);
     }
 }

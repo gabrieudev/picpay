@@ -1,8 +1,9 @@
 package br.com.gabrieudev.picpay.domain.entities;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public class WalletType {
+public class WalletType implements Serializable {
     private UUID id;
     private String name;
     private String description;
