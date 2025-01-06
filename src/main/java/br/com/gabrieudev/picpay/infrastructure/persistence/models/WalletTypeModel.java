@@ -1,5 +1,6 @@
 package br.com.gabrieudev.picpay.infrastructure.persistence.models;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 import org.modelmapper.ModelMapper;
@@ -24,7 +25,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @EqualsAndHashCode(of = "id")
 @Table(name = "WalletTypes")
-public class WalletTypeModel {
+public class WalletTypeModel implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

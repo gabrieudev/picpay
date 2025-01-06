@@ -8,6 +8,7 @@ import br.com.gabrieudev.picpay.application.gateways.NotificationGateway;
 import br.com.gabrieudev.picpay.application.gateways.WalletGateway;
 import br.com.gabrieudev.picpay.application.usecases.WalletInteractor;
 import br.com.gabrieudev.picpay.infrastructure.gateways.WalletServiceGateway;
+import br.com.gabrieudev.picpay.infrastructure.persistence.redis.WalletRedisRepository;
 import br.com.gabrieudev.picpay.infrastructure.persistence.repositories.WalletRepository;
 
 @Configuration
@@ -18,7 +19,7 @@ public class WalletConfig {
     }
 
     @Bean
-    WalletGateway walletGateway(WalletRepository walletRepository) {
-        return new WalletServiceGateway(walletRepository);
+    WalletGateway walletGateway(WalletRepository walletRepository, WalletRedisRepository walletRedisRepository) {
+        return new WalletServiceGateway(walletRepository, walletRedisRepository);
     }
 }

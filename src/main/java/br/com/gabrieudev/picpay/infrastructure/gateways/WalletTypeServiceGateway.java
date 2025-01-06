@@ -12,14 +12,17 @@ import br.com.gabrieudev.picpay.application.exceptions.EntityNotFoundException;
 import br.com.gabrieudev.picpay.application.gateways.WalletTypeGateway;
 import br.com.gabrieudev.picpay.domain.entities.WalletType;
 import br.com.gabrieudev.picpay.infrastructure.persistence.models.WalletTypeModel;
+import br.com.gabrieudev.picpay.infrastructure.persistence.redis.WalletTypeRedisRepository;
 import br.com.gabrieudev.picpay.infrastructure.persistence.repositories.WalletTypeRepository;
 
 @Service
 public class WalletTypeServiceGateway implements WalletTypeGateway {
     private final WalletTypeRepository walletTypeRepository;
+    private final WalletTypeRedisRepository walletTypeRedisRepository;
 
-    public WalletTypeServiceGateway(WalletTypeRepository walletTypeRepository) {
+    public WalletTypeServiceGateway(WalletTypeRepository walletTypeRepository, WalletTypeRedisRepository walletTypeRedisRepository) {
         this.walletTypeRepository = walletTypeRepository;
+        this.walletTypeRedisRepository = walletTypeRedisRepository;
     }
 
     @Override
@@ -34,15 +37,28 @@ public class WalletTypeServiceGateway implements WalletTypeGateway {
     @Override
     @Transactional(readOnly = true)
     public WalletType findById(UUID id) {
-        return walletTypeRepository.findById(id)
-            .map(WalletTypeModel::toDomainObj)
+        WalletTypeModel walletType = (WalletTypeModel) walletTypeRedisRepository.findById(id);
+        
+        if (walletType != null) {
+            return walletType.toDomainObj();
+        }
+
+        WalletTypeModel walletTypeModel = walletTypeRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Tipo de conta não encontrado"));
+
+        walletTypeRedisRepository.save(walletTypeModel);
+
+        return walletTypeModel.toDomainObj();
     }
 
     @Override
     @Transactional
     public WalletType save(WalletType walletType) {
-        return walletTypeRepository.save(WalletTypeModel.fromDomainObj(walletType)).toDomainObj();
+        WalletTypeModel savedWalletType = walletTypeRepository.save(WalletTypeModel.fromDomainObj(walletType));
+
+        walletTypeRedisRepository.save(savedWalletType);
+
+        return savedWalletType.toDomainObj();
     }
 
     @Override
@@ -51,7 +67,12 @@ public class WalletTypeServiceGateway implements WalletTypeGateway {
         if (!walletTypeRepository.existsById(walletType.getId())) {
             throw new EntityNotFoundException("Tipo de conta não encontrado");
         }
-        return walletTypeRepository.save(WalletTypeModel.fromDomainObj(walletType)).toDomainObj();
+
+        WalletTypeModel savedWalletType = walletTypeRepository.save(WalletTypeModel.fromDomainObj(walletType));
+
+        walletTypeRedisRepository.save(savedWalletType);
+
+        return savedWalletType.toDomainObj();
     }
 
     @Override

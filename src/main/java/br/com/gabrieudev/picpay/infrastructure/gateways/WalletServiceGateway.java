@@ -13,14 +13,17 @@ import br.com.gabrieudev.picpay.application.exceptions.EntityNotFoundException;
 import br.com.gabrieudev.picpay.application.gateways.WalletGateway;
 import br.com.gabrieudev.picpay.domain.entities.Wallet;
 import br.com.gabrieudev.picpay.infrastructure.persistence.models.WalletModel;
+import br.com.gabrieudev.picpay.infrastructure.persistence.redis.WalletRedisRepository;
 import br.com.gabrieudev.picpay.infrastructure.persistence.repositories.WalletRepository;
 
 @Service
 public class WalletServiceGateway implements WalletGateway {
     private final WalletRepository walletRepository;
+    private final WalletRedisRepository walletRedisRepository;
 
-    public WalletServiceGateway(WalletRepository walletRepository) {
+    public WalletServiceGateway(WalletRepository walletRepository, WalletRedisRepository walletRedisRepository) {
         this.walletRepository = walletRepository;
+        this.walletRedisRepository = walletRedisRepository;
     }
 
     @Override
@@ -29,6 +32,8 @@ public class WalletServiceGateway implements WalletGateway {
         if (!walletRepository.existsById(id)) {
             throw new EntityNotFoundException("Conta não encontrada");
         }
+
+        walletRedisRepository.delete(id);
         walletRepository.deleteById(id);
     }
 
@@ -40,6 +45,7 @@ public class WalletServiceGateway implements WalletGateway {
 
         wallet.deposit(value);
 
+        walletRedisRepository.save(wallet);
         walletRepository.save(wallet);
     }
 
@@ -47,6 +53,7 @@ public class WalletServiceGateway implements WalletGateway {
     @Transactional(readOnly = true)
     public List<Wallet> findAll(Integer page, Integer size) {
         Pageable pageable = PageRequest.of(page, size);
+
         return walletRepository.findAll(pageable).stream()
             .map(WalletModel::toDomainObj)
             .toList();
@@ -55,15 +62,28 @@ public class WalletServiceGateway implements WalletGateway {
     @Override
     @Transactional(readOnly = true)
     public Wallet findById(UUID id) {
-        return walletRepository.findById(id)
-            .map(WalletModel::toDomainObj)
+        WalletModel wallet = (WalletModel) walletRedisRepository.findById(id);
+        
+        if (wallet != null) {
+            return wallet.toDomainObj();
+        }
+
+        WalletModel walletModel = walletRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Conta não encontrada"));
+
+        walletRedisRepository.save(walletModel);
+
+        return walletModel.toDomainObj();
     }
 
     @Override
     @Transactional
     public Wallet save(Wallet wallet) {
-        return walletRepository.save(WalletModel.fromDomainObj(wallet)).toDomainObj();
+        WalletModel savedWallet = walletRepository.save(WalletModel.fromDomainObj(wallet));
+
+        walletRedisRepository.save(savedWallet);
+        
+        return savedWallet.toDomainObj();
     }
 
     @Override
@@ -72,7 +92,12 @@ public class WalletServiceGateway implements WalletGateway {
         if (!walletRepository.existsById(wallet.getId())) {
             throw new EntityNotFoundException("Conta não encontrada");
         }
-        return walletRepository.save(WalletModel.fromDomainObj(wallet)).toDomainObj();
+
+        WalletModel savedWallet = walletRepository.save(WalletModel.fromDomainObj(wallet));
+
+        walletRedisRepository.save(savedWallet);
+
+        return savedWallet.toDomainObj();
     }
 
     @Override
